@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { initializeBudget } from '@/application/initialize-budget';
@@ -7,6 +7,7 @@ import { ensureActiveBudgetPeriod } from '@/application/ensure-active-budget-per
 import { getDatabase } from '@/data/database/client';
 import { SqliteBudgetPeriodRepository, SqliteSettingsRepository, SqliteTransactionRepository } from '@/data/repositories/sqlite-repositories';
 import type { BudgetPeriod, ExpenseTransaction } from '@/domain/entities';
+import { calculateAvailableCents, formatBrl } from '@/domain/money';
 import { DashboardScreen } from '@/features/dashboard/dashboard-screen';
 import { ExpenseFormScreen } from '@/features/expenses/expense-form-screen';
 import { type PeriodHistoryItem, HistoryScreen } from '@/features/history/history-screen';
@@ -33,7 +34,7 @@ export default function IndexScreen() {
   const databaseError = useAppStore((state) => state.databaseError);
   const [screen, setScreen] = useState<ScreenState>({ kind: 'loading' });
 
-  async function loadDashboard() {
+  async function loadDashboard(announcement?: string) {
     const database = await getDatabase();
     const period = await ensureActiveBudgetPeriod(database);
     if (!period) {
@@ -43,6 +44,13 @@ export default function IndexScreen() {
     const transactions = new SqliteTransactionRepository(database);
     const [expenses, spentCents] = await Promise.all([transactions.listByPeriod(period.id), transactions.sumByPeriod(period.id)]);
     setScreen({ kind: 'dashboard', data: { period, expenses, spentCents } });
+    if (announcement) {
+      const availableCents = calculateAvailableCents(period.limitCents, spentCents);
+      const budgetSummary = availableCents >= 0
+        ? `${formatBrl(availableCents)} disponíveis neste período.`
+        : `${formatBrl(Math.abs(availableCents))} acima do limite.`;
+      AccessibilityInfo.announceForAccessibility(`${announcement} ${budgetSummary}`);
+    }
   }
 
   useEffect(() => {
@@ -94,7 +102,7 @@ export default function IndexScreen() {
       onSubmit={async (input) => {
         const database = await getDatabase();
         await new SqliteTransactionRepository(database).create(screen.period.id, { ...input, occurredAt: new Date().toISOString() });
-        await loadDashboard();
+        await loadDashboard('Despesa registrada.');
       }}
     />;
   }
@@ -105,11 +113,11 @@ export default function IndexScreen() {
       onBack={() => { void loadDashboard(); }}
       onDelete={async () => {
         await new SqliteTransactionRepository(await getDatabase()).delete(screen.expense.id);
-        await loadDashboard();
+        await loadDashboard('Despesa excluída.');
       }}
       onSubmit={async (input) => {
         await new SqliteTransactionRepository(await getDatabase()).update(screen.expense.id, input);
-        await loadDashboard();
+        await loadDashboard('Despesa atualizada.');
       }}
     />;
   }
