@@ -1,9 +1,9 @@
 import { assertPositiveCents } from './money';
 
 /** Converts common Brazilian currency input formats into integer centavos. */
-export function parseBrlToCents(input: string): number {
+export function parseBrlToCents(input: string, fieldName = 'O limite mensal'): number {
   const normalized = input.replace(/R\$/gi, '').replace(/\s/g, '').trim();
-  if (!normalized) throw new Error('Informe o limite mensal.');
+  if (!normalized) throw new Error(`Informe ${fieldName.toLowerCase()}.`);
 
   let integerPart: string;
   let decimalPart = '';
@@ -30,5 +30,5 @@ export function parseBrlToCents(input: string): number {
   const reais = Number(integerPart || '0');
   const centavos = Number((decimalPart || '').padEnd(2, '0'));
   const value = reais * 100 + centavos;
-  return assertPositiveCents(value, 'O limite mensal');
+  return assertPositiveCents(value, fieldName);
 }

@@ -14,4 +14,8 @@ describe('parseBrlToCents', () => {
     expect(() => parseBrlToCents('0')).toThrow();
     expect(() => parseBrlToCents('1,234')).toThrow();
   });
+
+  it('uses the supplied field name in validation messages', () => {
+    expect(() => parseBrlToCents('', 'O valor da despesa')).toThrow('Informe o valor da despesa.');
+  });
 });

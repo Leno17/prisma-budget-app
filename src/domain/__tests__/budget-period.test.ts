@@ -1,4 +1,4 @@
-import { getCurrentBudgetPeriod, getInitialBudgetPeriod } from '@/domain/budget-period';
+import { getCurrentBudgetPeriod, getInitialBudgetPeriod, getNextBudgetPeriod } from '@/domain/budget-period';
 
 describe('budget periods', () => {
   it('clamps a day 31 renewal to the last day of a short month', () => {
@@ -7,5 +7,13 @@ describe('budget periods', () => {
 
   it('starts the first period today and ends on the next renewal date', () => {
     expect(getInitialBudgetPeriod(new Date(2026, 7, 21), 28)).toEqual({ startsOn: '2026-08-21', endsOn: '2026-08-28' });
+  });
+
+  it('creates a bridge period when the next renewal day changes', () => {
+    expect(getNextBudgetPeriod('2026-08-05', 10)).toEqual({ startsOn: '2026-08-05', endsOn: '2026-09-10' });
+  });
+
+  it('clamps the following renewal day in a shorter month', () => {
+    expect(getNextBudgetPeriod('2026-01-31', 31)).toEqual({ startsOn: '2026-01-31', endsOn: '2026-02-28' });
   });
 });

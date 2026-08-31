@@ -5,17 +5,18 @@ import { formatBrl } from '@/domain/money';
 interface CurrencyAmountProps {
   cents: number;
   accessibilityLabel?: string;
+  accessible?: boolean;
   allowWrap?: boolean;
   containerClassName?: string;
   textClassName: string;
 }
 
-export function CurrencyAmount({ cents, accessibilityLabel, allowWrap = true, containerClassName = '', textClassName }: CurrencyAmountProps) {
+export function CurrencyAmount({ cents, accessibilityLabel, accessible = true, allowWrap = true, containerClassName = '', textClassName }: CurrencyAmountProps) {
   const amountGroups = formatBrl(Math.abs(cents)).replace(/^R\$\s*/, '').split('.');
 
   return (
     <View
-      accessible
+      accessible={accessible}
       accessibilityLabel={accessibilityLabel ?? formatBrl(cents)}
       accessibilityRole="text"
       className={`flex-row ${allowWrap ? 'flex-wrap' : 'flex-nowrap'} items-baseline ${containerClassName}`}

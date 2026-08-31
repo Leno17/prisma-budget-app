@@ -2,7 +2,6 @@ import type { AppSettings, BudgetPeriod, EntityId, ExpenseTransaction, NewExpens
 
 export interface SettingsRepository {
   get(): Promise<AppSettings | null>;
-  save(settings: Pick<AppSettings, 'defaultLimitCents' | 'renewalDay'>): Promise<AppSettings>;
 }
 
 export interface BudgetPeriodRepository {
@@ -14,6 +13,7 @@ export interface BudgetPeriodRepository {
 }
 
 export interface TransactionRepository {
+  getById(id: EntityId): Promise<ExpenseTransaction | null>;
   create(periodId: EntityId, transaction: NewExpenseTransaction): Promise<ExpenseTransaction>;
   update(id: EntityId, transaction: Pick<NewExpenseTransaction, 'amountCents' | 'description'>): Promise<ExpenseTransaction>;
   delete(id: EntityId): Promise<void>;

@@ -4,9 +4,10 @@ export const DATABASE_NAME = 'prisma.db';
 
 interface Migration { version: number; statements: string[]; }
 
-const migrations: Migration[] = [{
-  version: 1,
-  statements: [
+const migrations: Migration[] = [
+  {
+    version: 1,
+    statements: [
     `CREATE TABLE IF NOT EXISTS app_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       default_limit_cents INTEGER NOT NULL CHECK (default_limit_cents > 0),
@@ -33,8 +34,15 @@ const migrations: Migration[] = [{
       updated_at TEXT NOT NULL
     )`,
     'CREATE INDEX IF NOT EXISTS idx_transactions_period_occurred_at ON transactions (budget_period_id, occurred_at DESC)',
-  ],
-}];
+    ],
+  },
+  {
+    version: 2,
+    statements: [
+      'ALTER TABLE app_settings ADD COLUMN pending_renewal_day INTEGER CHECK (pending_renewal_day BETWEEN 1 AND 31)',
+    ],
+  },
+];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
   await db.execAsync(`

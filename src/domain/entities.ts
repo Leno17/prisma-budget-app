@@ -6,6 +6,7 @@ export interface AppSettings {
   id: 1;
   defaultLimitCents: number;
   renewalDay: number;
+  pendingRenewalDay: number | null;
   currencyCode: 'BRL';
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;

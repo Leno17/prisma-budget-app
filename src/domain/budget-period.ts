@@ -2,7 +2,7 @@ import type { IsoDate } from './entities';
 
 export interface PeriodRange { startsOn: IsoDate; endsOn: IsoDate; }
 
-function assertRenewalDay(renewalDay: number): void {
+export function assertRenewalDay(renewalDay: number): void {
   if (!Number.isInteger(renewalDay) || renewalDay < 1 || renewalDay > 31) {
     throw new Error('O dia de renovação deve estar entre 1 e 31.');
   }
@@ -38,4 +38,12 @@ export function getInitialBudgetPeriod(referenceDate: Date, renewalDay: number):
   let endsOn = localDate(startsOn.getFullYear(), startsOn.getMonth(), renewalDay);
   if (endsOn <= startsOn) endsOn = localDate(startsOn.getFullYear(), startsOn.getMonth() + 1, renewalDay);
   return { startsOn: asIsoDate(startsOn), endsOn: asIsoDate(endsOn) };
+}
+
+export function getNextBudgetPeriod(previousPeriodEndsOn: IsoDate, renewalDay: number): PeriodRange {
+  assertRenewalDay(renewalDay);
+  const [year, month, day] = previousPeriodEndsOn.split('-').map(Number);
+  const startsOn = localDate(year, month - 1, day);
+  const endsOn = localDate(startsOn.getFullYear(), startsOn.getMonth() + 1, renewalDay);
+  return { startsOn: previousPeriodEndsOn, endsOn: asIsoDate(endsOn) };
 }

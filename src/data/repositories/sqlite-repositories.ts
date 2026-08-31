@@ -7,6 +7,7 @@ interface SettingsRow {
   id: 1;
   default_limit_cents: number;
   renewal_day: number;
+  pending_renewal_day: number | null;
   currency_code: 'BRL';
   created_at: string;
   updated_at: string;
@@ -34,6 +35,7 @@ const toSettings = (row: SettingsRow): AppSettings => ({
   id: row.id,
   defaultLimitCents: row.default_limit_cents,
   renewalDay: row.renewal_day,
+  pendingRenewalDay: row.pending_renewal_day,
   currencyCode: row.currency_code,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -63,22 +65,6 @@ export class SqliteSettingsRepository implements SettingsRepository {
   async get(): Promise<AppSettings | null> {
     const row = await this.database.getFirstAsync<SettingsRow>('SELECT * FROM app_settings WHERE id = 1');
     return row ? toSettings(row) : null;
-  }
-
-  async save(settings: Pick<AppSettings, 'defaultLimitCents' | 'renewalDay'>): Promise<AppSettings> {
-    const now = new Date().toISOString();
-    await this.database.runAsync(
-      `INSERT INTO app_settings (id, default_limit_cents, renewal_day, created_at, updated_at)
-       VALUES (1, ?, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET default_limit_cents = excluded.default_limit_cents, renewal_day = excluded.renewal_day, updated_at = excluded.updated_at`,
-      settings.defaultLimitCents,
-      settings.renewalDay,
-      now,
-      now,
-    );
-    const saved = await this.get();
-    if (!saved) throw new Error('Não foi possível salvar as configurações.');
-    return saved;
   }
 }
 
@@ -128,6 +114,11 @@ export class SqliteBudgetPeriodRepository implements BudgetPeriodRepository {
 
 export class SqliteTransactionRepository implements TransactionRepository {
   constructor(private readonly database: SQLiteDatabase) {}
+
+  async getById(id: EntityId): Promise<ExpenseTransaction | null> {
+    const row = await this.database.getFirstAsync<TransactionRow>('SELECT * FROM transactions WHERE id = ?', id);
+    return row ? toTransaction(row) : null;
+  }
 
   async create(periodId: EntityId, transaction: NewExpenseTransaction): Promise<ExpenseTransaction> {
     const id = createId();

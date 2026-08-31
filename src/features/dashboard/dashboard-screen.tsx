@@ -7,6 +7,7 @@ import { BudgetRemainingRing } from '@/features/dashboard/budget-remaining-ring'
 import { getBudgetStatus } from '@/features/dashboard/budget-status';
 import { formatExpenseDateForAccessibility, formatRecentExpenseDate } from '@/features/dashboard/recent-expense-date';
 import { CurrencyAmount } from '@/shared/components/currency-amount';
+import { useScreenReaderFocus } from '@/shared/accessibility/use-screen-reader-focus';
 
 interface DashboardScreenProps {
   period: BudgetPeriod;
@@ -15,9 +16,11 @@ interface DashboardScreenProps {
   onAddExpense: () => void;
   onEditExpense: (expense: ExpenseTransaction) => void;
   onOpenHistory: () => void;
+  onOpenSettings: () => void;
 }
 
-export function DashboardScreen({ period, expenses, spentCents, onAddExpense, onEditExpense, onOpenHistory }: DashboardScreenProps) {
+export function DashboardScreen({ period, expenses, spentCents, onAddExpense, onEditExpense, onOpenHistory, onOpenSettings }: DashboardScreenProps) {
+  const headingRef = useScreenReaderFocus();
   const { fontScale } = useWindowDimensions();
   const availableCents = calculateAvailableCents(period.limitCents, spentCents);
   const budgetStatus = getBudgetStatus(period.limitCents, spentCents);
@@ -33,7 +36,18 @@ export function DashboardScreen({ period, expenses, spentCents, onAddExpense, on
     <View className="flex-1 bg-canvas">
       <SafeAreaView className="flex-1">
         <ScrollView contentContainerClassName="px-6 pb-10 pt-5">
-          <Text accessibilityRole="header" className="text-3xl font-bold text-prisma-700">PRISMA</Text>
+          <View className="flex-row items-center justify-between gap-4">
+            <Text ref={headingRef} accessibilityRole="header" className="text-3xl font-bold text-prisma-700">PRISMA</Text>
+            <Pressable
+              accessibilityHint="Abre as configurações do orçamento"
+              accessibilityLabel="Abrir configurações"
+              accessibilityRole="button"
+              className="min-h-12 items-center justify-center rounded-xl px-2 py-2"
+              onPress={onOpenSettings}
+            >
+              <Text className="text-base font-semibold text-prisma-700">Ajustes</Text>
+            </Pressable>
+          </View>
 
           <Text className="mt-8 text-[17px] font-medium leading-6 text-muted">Disponível neste período</Text>
           <CurrencyAmount
@@ -77,18 +91,16 @@ export function DashboardScreen({ period, expenses, spentCents, onAddExpense, on
 
           <View className={`mt-8 gap-3 ${usesStackedLayout ? 'items-start' : 'flex-row items-center justify-between'}`}>
             <Text accessibilityRole="header" className="text-xl font-bold leading-7 text-ink">Despesas recentes</Text>
-            {expenses.length > 0 && (
-              <Pressable
-                accessibilityHint="Abre o histórico com todas as despesas"
-                accessibilityLabel="Ver todas as despesas"
-                accessibilityRole="button"
-                className="min-h-12 flex-row items-center justify-center gap-2 rounded-full border border-prisma-700 px-4 py-2"
-                onPress={onOpenHistory}
-              >
-                <Text className="text-[17px] font-semibold leading-6 text-prisma-700">Ver todas</Text>
-                <Text accessible={false} className="text-[28px] font-medium leading-7 text-prisma-700">›</Text>
-              </Pressable>
-            )}
+            <Pressable
+              accessibilityHint="Abre o histórico com todas as despesas"
+              accessibilityLabel="Ver todas as despesas"
+              accessibilityRole="button"
+              className="min-h-12 flex-row items-center justify-center gap-2 rounded-full border border-prisma-700 px-4 py-2"
+              onPress={onOpenHistory}
+            >
+              <Text className="text-[17px] font-semibold leading-6 text-prisma-700">Ver todas</Text>
+              <Text accessible={false} className="text-[28px] font-medium leading-7 text-prisma-700">›</Text>
+            </Pressable>
           </View>
           <View className="mt-3 gap-2">
             {recentExpenses.map((expense) => (
@@ -104,7 +116,7 @@ export function DashboardScreen({ period, expenses, spentCents, onAddExpense, on
                   <Text accessible={false} className="text-[17px] font-semibold leading-6 text-ink">{expense.description}</Text>
                   <Text accessible={false} className="mt-1 text-base leading-6 text-muted">{formatRecentExpenseDate(expense.occurredAt)}</Text>
                 </View>
-                <CurrencyAmount cents={expense.amountCents} containerClassName={usesStackedLayout ? 'mt-3' : 'shrink-0'} textClassName="text-[17px] font-bold leading-6 text-ink" />
+                <CurrencyAmount accessible={false} cents={expense.amountCents} containerClassName={usesStackedLayout ? 'mt-3' : 'shrink-0'} textClassName="text-[17px] font-bold leading-6 text-ink" />
               </Pressable>
             ))}
             {expenses.length === 0 && <Text className="py-3 text-base leading-6 text-muted">Ainda não há despesas. Registre a primeira quando ela acontecer.</Text>}

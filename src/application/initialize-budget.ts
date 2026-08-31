@@ -34,6 +34,7 @@ export async function initializeBudget(database: SQLiteDatabase, input: Initiali
     id: 1,
     defaultLimitCents: input.limitCents,
     renewalDay: input.renewalDay,
+    pendingRenewalDay: null,
     currencyCode: 'BRL',
     createdAt,
     updatedAt: createdAt,
@@ -44,7 +45,7 @@ export async function initializeBudget(database: SQLiteDatabase, input: Initiali
     if (existing) throw new Error('O orçamento já foi configurado neste aparelho.');
 
     await transaction.runAsync(
-      'INSERT INTO app_settings (id, default_limit_cents, renewal_day, created_at, updated_at) VALUES (1, ?, ?, ?, ?)',
+      'INSERT INTO app_settings (id, default_limit_cents, renewal_day, pending_renewal_day, created_at, updated_at) VALUES (1, ?, ?, NULL, ?, ?)',
       settings.defaultLimitCents, settings.renewalDay, settings.createdAt, settings.updatedAt,
     );
     await transaction.runAsync(
