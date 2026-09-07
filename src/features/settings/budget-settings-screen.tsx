@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { AppSettings } from '@/domain/entities';
@@ -10,18 +10,21 @@ import { useScreenReaderFocus, useScreenReaderFocusWhen } from '@/shared/accessi
 interface BudgetSettingsScreenProps {
   settings: AppSettings;
   onBack: () => void;
+  onDeleteAllData: () => Promise<void>;
   onSubmit: (input: { limitCents: number; renewalDay: number }) => Promise<void>;
 }
 
 const renewalDays = [1, 5, 10, 15, 20, 25, 30];
 
-export function BudgetSettingsScreen({ settings, onBack, onSubmit }: BudgetSettingsScreenProps) {
+export function BudgetSettingsScreen({ settings, onBack, onDeleteAllData, onSubmit }: BudgetSettingsScreenProps) {
   const headingRef = useScreenReaderFocus();
   const [limit, setLimit] = useState(formatBrl(settings.defaultLimitCents).replace(/^R\$\s*/, ''));
   const [renewalDay, setRenewalDay] = useState(settings.pendingRenewalDay ?? settings.renewalDay);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorRef = useScreenReaderFocusWhen(Boolean(error));
+  const isBusy = isSaving || isDeleting;
 
   async function save() {
     try {
@@ -33,6 +36,29 @@ export function BudgetSettingsScreen({ settings, onBack, onSubmit }: BudgetSetti
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function removeAllData() {
+    try {
+      setError(null);
+      setIsDeleting(true);
+      await onDeleteAllData();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Não foi possível apagar seus dados locais.');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  function confirmDataDeletion() {
+    Alert.alert(
+      'Apagar todos os dados do Prisma?',
+      'Seu orçamento, todas as despesas e todo o histórico serão apagados permanentemente deste aparelho. Essa ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Apagar dados', style: 'destructive', onPress: removeAllData },
+      ],
+    );
   }
 
   return (
@@ -97,13 +123,33 @@ export function BudgetSettingsScreen({ settings, onBack, onSubmit }: BudgetSetti
 
             <Pressable
               accessibilityHint="Salva as alterações do orçamento"
+              accessibilityLabel="Salvar alterações"
               accessibilityRole="button"
+              accessibilityState={{ busy: isSaving, disabled: isBusy }}
               className="mt-8 min-h-14 items-center justify-center rounded-2xl bg-prisma-700 px-5 py-4 disabled:opacity-60"
-              disabled={isSaving}
+              disabled={isBusy}
               onPress={save}
             >
               {isSaving ? <ActivityIndicator color="#FFFFFF" /> : <Text className="text-lg font-bold text-white">Salvar alterações</Text>}
             </Pressable>
+
+            <View className="mt-10 border-t border-danger pt-8">
+              <Text accessibilityRole="header" className="text-xl font-bold leading-7 text-ink">Privacidade e dados</Text>
+              <Text className="mt-2 text-base leading-6 text-muted">
+                Apague permanentemente o orçamento, as despesas e o histórico salvos neste aparelho.
+              </Text>
+              <Pressable
+                accessibilityHint="Abre uma confirmação antes de apagar permanentemente todos os dados do Prisma"
+                accessibilityLabel="Apagar todos os dados"
+                accessibilityRole="button"
+                accessibilityState={{ busy: isDeleting, disabled: isBusy }}
+                className="mt-5 min-h-14 items-center justify-center rounded-2xl border-2 border-danger bg-surface px-5 py-4 disabled:opacity-60"
+                disabled={isBusy}
+                onPress={confirmDataDeletion}
+              >
+                {isDeleting ? <ActivityIndicator color="#C93C38" /> : <Text className="text-lg font-bold text-danger">Apagar todos os dados</Text>}
+              </Pressable>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

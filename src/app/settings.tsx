@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 
+import { deleteAllLocalData } from '@/application/delete-local-data';
 import { updateBudgetSettings } from '@/application/update-budget-settings';
 import { getDatabase } from '@/data/database/client';
 import { SqliteSettingsRepository } from '@/data/repositories/sqlite-repositories';
@@ -48,6 +49,11 @@ export default function SettingsRoute() {
   return (
     <BudgetSettingsScreen
       onBack={() => goBackToDashboard(router)}
+      onDeleteAllData={async () => {
+        await deleteAllLocalData(await getDatabase());
+        router.dismissAll();
+        router.replace(appRoutes.setup);
+      }}
       onSubmit={async (input) => {
         const updated = await updateBudgetSettings(await getDatabase(), input);
         const renewalNote = updated.settings.pendingRenewalDay === null

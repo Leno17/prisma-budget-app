@@ -1,7 +1,8 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { PeriodHistoryItem } from '@/application/dashboard-data';
+import { getInclusivePeriodEnd } from '@/domain/budget-period';
 import type { BudgetPeriod } from '@/domain/entities';
 import { calculateAvailableCents, formatBrl } from '@/domain/money';
 import { CurrencyAmount } from '@/shared/components/currency-amount';
@@ -15,6 +16,8 @@ interface HistoryScreenProps {
 
 export function HistoryScreen({ items, onBack, onEditExpense }: HistoryScreenProps) {
   const headingRef = useScreenReaderFocus();
+  const { fontScale } = useWindowDimensions();
+  const usesStackedLayout = fontScale > 1.3;
   return (
     <View className="flex-1 bg-canvas">
       <SafeAreaView className="flex-1">
@@ -44,15 +47,15 @@ export function HistoryScreen({ items, onBack, onEditExpense }: HistoryScreenPro
                     accessibilityHint="Abre esta despesa para edição"
                     accessibilityLabel={`${expense.description}, ${formatBrl(expense.amountCents)}, registrada em ${formatExpenseDate(expense.occurredAt)}`}
                     accessibilityRole="button"
-                    className="min-h-14 flex-row items-center justify-between gap-4 rounded-xl px-2 py-3"
+                    className={`min-h-14 rounded-xl px-2 py-3 ${usesStackedLayout ? '' : 'flex-row items-center justify-between gap-4'}`}
                     key={expense.id}
                     onPress={() => onEditExpense(expense.id)}
                   >
-                    <View className="min-w-0 flex-1">
+                    <View className={usesStackedLayout ? 'min-w-0' : 'min-w-0 flex-1'}>
                       <Text accessible={false} className="text-base font-semibold leading-6 text-ink">{expense.description}</Text>
                       <Text accessible={false} className="mt-1 text-base leading-6 text-muted">{formatExpenseDate(expense.occurredAt)}</Text>
                     </View>
-                    <CurrencyAmount accessible={false} allowWrap={false} cents={expense.amountCents} containerClassName="shrink-0" textClassName="text-base font-bold leading-6 text-ink" />
+                    <CurrencyAmount accessible={false} allowWrap={usesStackedLayout} cents={expense.amountCents} containerClassName={usesStackedLayout ? 'mt-2' : 'shrink-0'} textClassName="text-base font-bold leading-6 text-ink" />
                   </Pressable>
                 ))}
                 {expenses.length === 0 && <Text className="py-2 text-base leading-6 text-muted">Nenhuma despesa registrada neste período.</Text>}
@@ -76,7 +79,7 @@ function formatRange(period: BudgetPeriod): string {
     const [year, month, day] = value.split('-').map(Number);
     return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(year, month - 1, day, 12));
   };
-  return `${format(period.startsOn)} — ${format(period.endsOn)}`;
+  return `De ${format(period.startsOn)} até ${format(getInclusivePeriodEnd(period.endsOn))}`;
 }
 
 function formatExpenseDate(occurredAt: string): string {

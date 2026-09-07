@@ -30,4 +30,21 @@ describe('DashboardScreen', () => {
 
     expect(onOpenHistory).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the day before the exclusive renewal boundary as the final included date', async () => {
+    const { getByText, queryByText } = await render(
+      <DashboardScreen
+        expenses={[]}
+        onAddExpense={jest.fn()}
+        onEditExpense={jest.fn()}
+        onOpenHistory={jest.fn()}
+        onOpenSettings={jest.fn()}
+        period={period}
+        spentCents={0}
+      />,
+    );
+
+    expect(getByText('De 05 de set. até 04 de out.')).toBeTruthy();
+    expect(queryByText(/05 de out\./)).toBeNull();
+  });
 });

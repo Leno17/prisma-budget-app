@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { AppSettings, BudgetPeriod, EntityId, ExpenseTransaction, NewExpenseTransaction } from '@/domain/entities';
+import { normalizeExpenseDescription } from '@/domain/expense-description';
 import type { BudgetPeriodRepository, SettingsRepository, TransactionRepository } from '@/domain/repositories';
 
 interface SettingsRow {
@@ -123,17 +124,19 @@ export class SqliteTransactionRepository implements TransactionRepository {
   async create(periodId: EntityId, transaction: NewExpenseTransaction): Promise<ExpenseTransaction> {
     const id = createId();
     const now = new Date().toISOString();
+    const description = normalizeExpenseDescription(transaction.description);
     await this.database.runAsync(
       `INSERT INTO transactions (id, budget_period_id, amount_cents, description, occurred_at, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      id, periodId, transaction.amountCents, transaction.description.trim(), transaction.occurredAt, now, now,
+      id, periodId, transaction.amountCents, description, transaction.occurredAt, now, now,
     );
-    return { id, budgetPeriodId: periodId, ...transaction, description: transaction.description.trim(), createdAt: now, updatedAt: now };
+    return { id, budgetPeriodId: periodId, ...transaction, description, createdAt: now, updatedAt: now };
   }
 
   async update(id: EntityId, transaction: Pick<NewExpenseTransaction, 'amountCents' | 'description'>): Promise<ExpenseTransaction> {
     const now = new Date().toISOString();
-    await this.database.runAsync('UPDATE transactions SET amount_cents = ?, description = ?, updated_at = ? WHERE id = ?', transaction.amountCents, transaction.description.trim(), now, id);
+    const description = normalizeExpenseDescription(transaction.description);
+    await this.database.runAsync('UPDATE transactions SET amount_cents = ?, description = ?, updated_at = ? WHERE id = ?', transaction.amountCents, description, now, id);
     const row = await this.database.getFirstAsync<TransactionRow>('SELECT * FROM transactions WHERE id = ?', id);
     if (!row) throw new Error('Despesa não encontrada.');
     return toTransaction(row);

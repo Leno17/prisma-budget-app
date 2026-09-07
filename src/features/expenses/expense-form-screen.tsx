@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, Sc
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ExpenseTransaction } from '@/domain/entities';
+import { MAX_EXPENSE_DESCRIPTION_LENGTH, normalizeExpenseDescription } from '@/domain/expense-description';
 import { formatBrl } from '@/domain/money';
 import { parseBrlToCents } from '@/domain/parse-money';
 import { useScreenReaderFocus, useScreenReaderFocusWhen } from '@/shared/accessibility/use-screen-reader-focus';
@@ -24,11 +25,10 @@ export function ExpenseFormScreen({ expense, onBack, onDelete, onSubmit }: Expen
 
   async function save() {
     try {
-      const trimmedDescription = description.trim();
-      if (!trimmedDescription) throw new Error('Descreva esta despesa antes de continuar.');
+      const normalizedDescription = normalizeExpenseDescription(description);
       setError(null);
       setIsSaving(true);
-      await onSubmit({ amountCents: parseBrlToCents(amount, 'O valor da despesa'), description: trimmedDescription });
+      await onSubmit({ amountCents: parseBrlToCents(amount, 'O valor da despesa'), description: normalizedDescription });
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : 'Não foi possível salvar esta despesa.');
     } finally {
@@ -92,9 +92,10 @@ export function ExpenseFormScreen({ expense, onBack, onDelete, onSubmit }: Expen
             <View className="mt-7">
               <Text className="text-base font-semibold text-ink">Descrição</Text>
               <TextInput
-                accessibilityHint="Descreva a compra para registrá-la"
+                accessibilityHint={`Descreva a compra para registrá-la, com no máximo ${MAX_EXPENSE_DESCRIPTION_LENGTH} caracteres`}
                 accessibilityLabel="Descrição da despesa"
                 className="mt-2 min-h-28 rounded-2xl border border-prisma-700 bg-surface px-4 py-4 align-top text-base leading-6 text-ink"
+                maxLength={MAX_EXPENSE_DESCRIPTION_LENGTH}
                 multiline
                 onChangeText={setDescription}
                 placeholder="Ex.: Almoço no trabalho"
@@ -102,11 +103,14 @@ export function ExpenseFormScreen({ expense, onBack, onDelete, onSubmit }: Expen
                 textAlignVertical="top"
                 value={description}
               />
+              <Text className="mt-2 text-base leading-6 text-muted">Máximo de {MAX_EXPENSE_DESCRIPTION_LENGTH} caracteres.</Text>
             </View>
             {error && <Text ref={errorRef} accessibilityLiveRegion="assertive" accessibilityRole="alert" className="mt-6 text-base font-semibold leading-6 text-danger">{error}</Text>}
             <Pressable
               accessibilityHint="Salva esta despesa"
+              accessibilityLabel="Salvar despesa"
               accessibilityRole="button"
+              accessibilityState={{ busy: isSaving, disabled: isSaving }}
               className="mt-8 min-h-14 items-center justify-center rounded-2xl bg-prisma-700 px-5 py-4 disabled:opacity-60"
               disabled={isSaving}
               onPress={save}
@@ -116,7 +120,9 @@ export function ExpenseFormScreen({ expense, onBack, onDelete, onSubmit }: Expen
             {expense && (
               <Pressable
                 accessibilityHint="Pede confirmação antes de excluir esta despesa"
+                accessibilityLabel="Excluir despesa"
                 accessibilityRole="button"
+                accessibilityState={{ disabled: isSaving }}
                 className="mt-4 min-h-12 items-center justify-center rounded-xl px-4 py-3 disabled:opacity-60"
                 disabled={isSaving}
                 onPress={confirmRemoval}

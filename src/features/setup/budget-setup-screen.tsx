@@ -86,7 +86,9 @@ export function BudgetSetupScreen({ onSubmit }: BudgetSetupScreenProps) {
 
             <Pressable
               accessibilityHint="Cria o orçamento com o limite e o dia de renovação escolhidos"
+              accessibilityLabel="Criar meu orçamento"
               accessibilityRole="button"
+              accessibilityState={{ busy: isSaving, disabled: isSaving }}
               className="mt-8 min-h-14 items-center justify-center rounded-2xl bg-prisma-700 px-5 py-4 disabled:opacity-60"
               disabled={isSaving}
               onPress={handleSubmit}

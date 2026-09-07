@@ -38,10 +38,11 @@ describe('migrateDatabase', () => {
     await migrateDatabase(asDatabase(database));
     await migrateDatabase(asDatabase(database));
 
-    expect(database.appliedVersions).toEqual([1, 2]);
-    expect(database.executedStatements.filter((statement) => statement === 'BEGIN IMMEDIATE')).toHaveLength(2);
-    expect(database.executedStatements.filter((statement) => statement === 'COMMIT')).toHaveLength(2);
+    expect(database.appliedVersions).toEqual([1, 2, 3]);
+    expect(database.executedStatements.filter((statement) => statement === 'BEGIN IMMEDIATE')).toHaveLength(3);
+    expect(database.executedStatements.filter((statement) => statement === 'COMMIT')).toHaveLength(3);
     expect(database.executedStatements).toContain('ALTER TABLE app_settings ADD COLUMN pending_renewal_day INTEGER CHECK (pending_renewal_day BETWEEN 1 AND 31)');
+    expect(database.executedStatements.some((statement) => statement.includes('validate_transaction_description_length_on_insert'))).toBe(true);
   });
 
   it('rolls back a failed pending migration without recording it as applied', async () => {

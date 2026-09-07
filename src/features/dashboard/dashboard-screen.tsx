@@ -2,6 +2,7 @@ import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { BudgetPeriod, ExpenseTransaction } from '@/domain/entities';
+import { getInclusivePeriodEnd } from '@/domain/budget-period';
 import { calculateAvailableCents, formatBrl } from '@/domain/money';
 import { BudgetRemainingRing } from '@/features/dashboard/budget-remaining-ring';
 import { getBudgetStatus } from '@/features/dashboard/budget-status';
@@ -56,26 +57,26 @@ export function DashboardScreen({ period, expenses, spentCents, onAddExpense, on
             containerClassName="mt-1"
             textClassName={`text-[46px] font-bold leading-[54px] tracking-tight ${availableCents < 0 ? 'text-danger' : 'text-ink'}`}
           />
-          <Text className="mt-3 text-base leading-6 text-muted">De {formatDate(period.startsOn)} a {formatDate(period.endsOn)}</Text>
+          <Text className="mt-3 text-base leading-6 text-muted">De {formatDate(period.startsOn)} até {formatDate(getInclusivePeriodEnd(period.endsOn))}</Text>
 
           <View className="mt-7 rounded-3xl border border-prisma-100 bg-surface p-6">
             <BudgetRemainingRing status={budgetStatus} />
             <View className="mt-6 border-t border-prisma-100 pt-6">
               <View className={usesStackedLayout ? 'gap-5' : 'flex-row'}>
-                <View className="min-w-0 flex-1">
+                <View className={usesStackedLayout ? 'min-w-0' : 'min-w-0 flex-1'}>
                   <Text className="text-base font-medium leading-6 text-muted">Gasto até agora</Text>
-                  <CurrencyAmount allowWrap={false} cents={spentCents} containerClassName="mt-2" textClassName="text-2xl font-bold leading-8 text-ink" />
+                  <CurrencyAmount allowWrap={usesStackedLayout} cents={spentCents} containerClassName="mt-2" textClassName="text-2xl font-bold leading-8 text-ink" />
                 </View>
-                <View className={usesStackedLayout ? 'min-w-0 flex-1 border-t border-prisma-100 pt-5' : 'min-w-0 flex-1 border-l border-prisma-100 pl-5'}>
+                <View className={usesStackedLayout ? 'min-w-0 border-t border-prisma-100 pt-5' : 'min-w-0 flex-1 border-l border-prisma-100 pl-5'}>
                   <Text className="text-base font-medium leading-6 text-muted">Limite do período</Text>
-                  <CurrencyAmount allowWrap={false} cents={period.limitCents} containerClassName="mt-2" textClassName="text-2xl font-bold leading-8 text-ink" />
+                  <CurrencyAmount allowWrap={usesStackedLayout} cents={period.limitCents} containerClassName="mt-2" textClassName="text-2xl font-bold leading-8 text-ink" />
                 </View>
               </View>
               <View className="mt-6 flex-row items-center justify-center gap-2">
-                <View accessible={false} className={`h-7 w-7 items-center justify-center rounded-full ${statusBackgroundClass}`}>
-                  <Text accessible={false} className="text-base font-bold leading-5 text-white">{statusSymbol}</Text>
+                <View accessible={false} className={`h-7 w-7 shrink-0 items-center justify-center rounded-full ${statusBackgroundClass}`}>
+                  <Text accessible={false} allowFontScaling={false} className="text-base font-bold leading-5 text-white">{statusSymbol}</Text>
                 </View>
-                <Text className={`text-base font-semibold leading-6 ${statusColorClass}`}>{statusText}</Text>
+                <Text className={`shrink text-center text-base font-semibold leading-6 ${statusColorClass}`}>{statusText}</Text>
               </View>
             </View>
           </View>
@@ -112,7 +113,7 @@ export function DashboardScreen({ period, expenses, spentCents, onAddExpense, on
                 key={expense.id}
                 onPress={() => onEditExpense(expense)}
               >
-                <View className="flex-1">
+                <View className={usesStackedLayout ? 'min-w-0' : 'min-w-0 flex-1'}>
                   <Text accessible={false} className="text-[17px] font-semibold leading-6 text-ink">{expense.description}</Text>
                   <Text accessible={false} className="mt-1 text-base leading-6 text-muted">{formatRecentExpenseDate(expense.occurredAt)}</Text>
                 </View>

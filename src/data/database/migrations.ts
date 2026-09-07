@@ -42,6 +42,23 @@ const migrations: Migration[] = [
       'ALTER TABLE app_settings ADD COLUMN pending_renewal_day INTEGER CHECK (pending_renewal_day BETWEEN 1 AND 31)',
     ],
   },
+  {
+    version: 3,
+    statements: [
+      `CREATE TRIGGER IF NOT EXISTS validate_transaction_description_length_on_insert
+       BEFORE INSERT ON transactions
+       FOR EACH ROW WHEN length(trim(NEW.description)) > 100
+       BEGIN
+         SELECT RAISE(ABORT, 'A descrição da despesa deve ter no máximo 100 caracteres.');
+       END`,
+      `CREATE TRIGGER IF NOT EXISTS validate_transaction_description_length_on_update
+       BEFORE UPDATE OF description ON transactions
+       FOR EACH ROW WHEN length(trim(NEW.description)) > 100
+       BEGIN
+         SELECT RAISE(ABORT, 'A descrição da despesa deve ter no máximo 100 caracteres.');
+       END`,
+    ],
+  },
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {

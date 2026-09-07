@@ -47,3 +47,10 @@ export function getNextBudgetPeriod(previousPeriodEndsOn: IsoDate, renewalDay: n
   const endsOn = localDate(startsOn.getFullYear(), startsOn.getMonth() + 1, renewalDay);
   return { startsOn: previousPeriodEndsOn, endsOn: asIsoDate(endsOn) };
 }
+
+/** Returns the final calendar day included in a period whose `endsOn` is exclusive. */
+export function getInclusivePeriodEnd(endsOn: IsoDate): IsoDate {
+  const [year, month, day] = endsOn.split('-').map(Number);
+  const inclusiveEnd = new Date(year, month - 1, day - 1, 12);
+  return asIsoDate(inclusiveEnd);
+}
