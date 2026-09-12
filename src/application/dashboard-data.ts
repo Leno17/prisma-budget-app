@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { ensureActiveBudgetPeriod } from '@/application/ensure-active-budget-period';
 import { SqliteBudgetPeriodRepository, SqliteTransactionRepository } from '@/data/repositories/sqlite-repositories';
 import type { BudgetPeriod, ExpenseTransaction } from '@/domain/entities';
+import { sumCents } from '@/domain/money';
 
 export interface DashboardData {
   period: BudgetPeriod;
@@ -21,10 +22,8 @@ export async function loadDashboardData(database: SQLiteDatabase): Promise<Dashb
   if (!period) return null;
 
   const transactions = new SqliteTransactionRepository(database);
-  const [expenses, spentCents] = await Promise.all([
-    transactions.listByPeriod(period.id),
-    transactions.sumByPeriod(period.id),
-  ]);
+  const expenses = await transactions.listByPeriod(period.id);
+  const spentCents = sumCents(expenses.map((expense) => expense.amountCents));
 
   return { period, expenses, spentCents };
 }
@@ -35,7 +34,7 @@ export async function loadPeriodHistory(database: SQLiteDatabase): Promise<Perio
   const transactions = new SqliteTransactionRepository(database);
   return Promise.all(periods.map(async (period) => {
     const expenses = await transactions.listByPeriod(period.id);
-    const spentCents = expenses.reduce((total, expense) => total + expense.amountCents, 0);
+    const spentCents = sumCents(expenses.map((expense) => expense.amountCents));
     return { period, expenses, spentCents };
   }));
 }

@@ -1,21 +1,31 @@
-The MIT License (MIT)
+Prisma Portfolio Source License
 
-Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+Copyright (c) 2026 Gabriel Weissheimer. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository is made available as a source-available portfolio project. It
+is not open-source software.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Permission is granted to view, fork through GitHub, clone, build, and run this
+software solely for personal evaluation, education, and portfolio review.
+Private local modifications are permitted only for those same purposes.
+
+Without prior written permission from the copyright holder, you may not:
+
+- distribute, publish, deploy, or otherwise make available the software or a
+  modified version of it;
+- submit or distribute the software or a modified version through an app
+  store or other software marketplace;
+- sell, sublicense, monetize, or use the software as the basis of a commercial
+  product or service; or
+- reuse Prisma's original visual identity, artwork, documentation, or other
+  project-specific assets in another product.
+
+Third-party libraries, tools, and other components used by this project are
+not relicensed by this notice. They remain subject to their respective license
+terms and copyright notices.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.

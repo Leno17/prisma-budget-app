@@ -13,7 +13,24 @@ export function assertPositiveCents(value: number, fieldName = 'Valor'): number 
   return value;
 }
 
+export function sumCents(values: Iterable<number>, fieldName = 'Total gasto'): number {
+  let total = 0;
+
+  for (const value of values) {
+    assertValidCents(value, fieldName);
+    total += value;
+    if (!Number.isSafeInteger(total)) {
+      throw new Error(`${fieldName} excede o maior valor que o Prisma pode calcular com segurança.`);
+    }
+  }
+
+  return total;
+}
+
 export function formatBrl(cents: number): string {
+  if (!Number.isSafeInteger(cents)) {
+    throw new Error('Valor monetário inválido para formatação.');
+  }
   return brl.format(cents / 100);
 }
 

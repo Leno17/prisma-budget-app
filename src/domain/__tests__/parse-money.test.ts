@@ -18,4 +18,8 @@ describe('parseBrlToCents', () => {
   it('uses the supplied field name in validation messages', () => {
     expect(() => parseBrlToCents('', 'O valor da despesa')).toThrow('Informe o valor da despesa.');
   });
+
+  it('rejects monetary values beyond JavaScript safe-integer precision', () => {
+    expect(() => parseBrlToCents('90.071.992.547.409,92')).toThrow('número inteiro de centavos');
+  });
 });

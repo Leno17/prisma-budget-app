@@ -29,14 +29,6 @@ export class FakeBudgetDatabase {
   async getFirstAsync<T>(query: string, ...parameters: unknown[]): Promise<T | null> {
     if (query.includes('FROM app_settings')) return this.settings ? ({ ...this.settings } as T) : null;
 
-    if (query.includes('starts_on <= ? AND ends_on > ?')) {
-      const [date] = parameters as [string];
-      const period = this.periods
-        .filter((item) => item.starts_on <= date && item.ends_on > date)
-        .sort((left, right) => right.starts_on.localeCompare(left.starts_on))[0];
-      return period ? ({ ...period } as T) : null;
-    }
-
     if (query.includes('ORDER BY ends_on DESC')) {
       const period = [...this.periods].sort((left, right) => right.ends_on.localeCompare(left.ends_on))[0];
       return period ? ({ ...period } as T) : null;

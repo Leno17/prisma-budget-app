@@ -1,4 +1,4 @@
-import { getCurrentBudgetPeriod, getInclusivePeriodEnd, getInitialBudgetPeriod, getNextBudgetPeriod } from '@/domain/budget-period';
+import { assertIsoDate, getCurrentBudgetPeriod, getInclusivePeriodEnd, getInitialBudgetPeriod, getNextBudgetPeriod } from '@/domain/budget-period';
 
 describe('budget periods', () => {
   it('clamps a day 31 renewal to the last day of a short month', () => {
@@ -11,6 +11,11 @@ describe('budget periods', () => {
 
   it('creates a bridge period when the next renewal day changes', () => {
     expect(getNextBudgetPeriod('2026-08-05', 10)).toEqual({ startsOn: '2026-08-05', endsOn: '2026-09-10' });
+  });
+
+  it('rejects invalid calendar dates and invalid device dates', () => {
+    expect(() => assertIsoDate('2026-02-30')).toThrow('não representa uma data válida');
+    expect(() => getCurrentBudgetPeriod(new Date(Number.NaN), 10)).toThrow('data do aparelho não é válida');
   });
 
   it('clamps the following renewal day in a shorter month', () => {

@@ -48,18 +48,60 @@ pnpm start
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm verify
 ```
+
+## Native Android builds
+
+Prisma uses EAS Build with two Android release-mode profiles:
+
+- `preview` creates a signed APK for direct installation on an emulator or Android device. It is the release candidate used for standalone and cold-offline validation.
+- `production` creates an AAB for a possible future Google Play release. Creating this artifact does not submit it to the store.
+
+EAS CLI is intentionally not a project dependency. Run its current version on demand:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest init
+```
+
+The first command authenticates an Expo account. The second creates or links the EAS project and records its generated project ID in the Expo app configuration; review and commit that change before building.
+
+Inspect the resolved profile before requesting a remote build:
+
+```bash
+npx eas-cli@latest config --platform android --profile preview
+npx eas-cli@latest config --platform android --profile production
+```
+
+Create an installable preview APK:
+
+```bash
+npx eas-cli@latest build --platform android --profile preview
+```
+
+On the first Android build, EAS may ask for signing credentials. Let EAS generate and manage a new Android keystore unless an existing Prisma keystore already exists. Never add a keystore or its passwords to the repository.
+
+Only create the production AAB when a store-ready artifact is actually needed:
+
+```bash
+npx eas-cli@latest build --platform android --profile production
+```
+
+Application versions remain source-controlled in `app.json`. Increment `expo.android.versionCode` for each new production artifact that may be uploaded to Google Play, and update `expo.version` when the user-facing release version changes. Store submission is deliberately outside the current project scope.
 
 ## Verification
 
 Run the automated baseline after dependency or schema changes:
 
 ```bash
-pnpm typecheck
-pnpm lint
-pnpm test
+pnpm verify
 npx expo-doctor
 ```
+
+`pnpm verify` runs TypeScript, lint, and Jest in the same sequence used by the
+GitHub Actions workflow. `expo-doctor` is kept as a separate Expo dependency
+and configuration diagnostic because it may require current Expo metadata.
 
 Before an Android release candidate, verify these interactions on an emulator or device:
 
@@ -73,6 +115,10 @@ Before an Android release candidate, verify these interactions on an emulator or
 - Test Android font scaling at 100% and 200%, portrait and landscape, and TalkBack reading order, labels, selected states, progress, errors, and success announcements.
 
 The included migration tests validate that pending SQLite schema migrations apply once and roll back on failure. Native SQLite behavior must still be checked on Android because Jest does not run Expo's native SQLite module.
+
+The latest standalone Android validation is recorded in
+[docs/release-validation.md](docs/release-validation.md). It documents the
+scope of the tested preview APK; it does not represent a Google Play release.
 
 ## Project structure
 
@@ -93,6 +139,8 @@ src/state/           Transient Zustand stores
 - Renewal-day changes are stored as pending and apply only when the next period begins; the current period never changes.
 - The first period after a renewal-day change bridges from the old boundary to the new schedule, then later periods follow the new day.
 - History is organized by budget periods rather than calendar months.
+- Missing periods are created sequentially when the app resumes after one or more renewal boundaries.
+- If the device clock moves behind the newest saved period, Prisma keeps the newest period active instead of rewriting or reactivating history.
 
 ## Platform scope and data handling
 
@@ -102,6 +150,16 @@ src/state/           Transient Zustand stores
 - This choice improves privacy, but the user cannot recover Prisma data through Android backup after losing or replacing a device, or after uninstalling the app. A manual export/import capability is not yet available.
 - The app has no login, synchronization, banking integration, analytics, crash-reporting SDK, or network-based transfer of financial data.
 - The settings screen provides a destructive, explicitly confirmed reset that atomically clears all user-created records from the local database.
+- Failed database initialization can be retried without restarting the app; failed connections are closed before a new attempt.
 - Data is local, but it is not encrypted at rest. SQLCipher is intentionally deferred to a future native-build hardening phase because it is incompatible with Expo Go.
 - Expo Go has its own application sandbox; this Android manifest setting takes effect in Prisma's generated native builds, not in Expo Go itself.
-- After its JavaScript bundle has loaded, Prisma's budgeting and SQLite flows do not require a network connection. Expo Go remains a development client: a cold launch can require Metro to serve the development bundle. Validate a true cold-offline launch from a native preview build before release; do not treat an Expo Go cold launch as that release check.
+- After its JavaScript bundle has loaded, Prisma's budgeting and SQLite flows do not require a network connection. Expo Go remains a development client: a cold launch can require Metro to serve the development bundle. Validate a true cold-offline launch from the EAS `preview` APK before release; do not treat an Expo Go cold launch as that release check.
+
+## License
+
+Prisma is a source-available portfolio project, not an open-source project.
+You may view, clone, build, and run it for personal evaluation, education, and
+portfolio review. Redistribution, public deployment, app-store publication,
+commercial use, and reuse of the project's visual identity are not permitted
+without prior written permission. See [LICENSE](LICENSE) for the complete
+terms. Third-party dependencies remain subject to their own licenses.

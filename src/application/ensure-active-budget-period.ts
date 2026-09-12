@@ -1,7 +1,10 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { getCurrentBudgetPeriod, getNextBudgetPeriod } from '@/domain/budget-period';
+import { assertIsoDate, assertRenewalDay, getCurrentBudgetPeriod, getNextBudgetPeriod } from '@/domain/budget-period';
 import type { BudgetPeriod } from '@/domain/entities';
+import { assertPositiveCents } from '@/domain/money';
+
+const MAX_PERIODS_PER_CATCH_UP = 1_200;
 
 interface SettingsRow {
   default_limit_cents: number;
@@ -18,6 +21,9 @@ interface PeriodRow {
 }
 
 export async function ensureActiveBudgetPeriod(database: SQLiteDatabase, now = new Date()): Promise<BudgetPeriod | null> {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    throw new Error('A data do aparelho não é válida. Corrija-a e tente novamente.');
+  }
   const date = asLocalIsoDate(now);
   let resolvedPeriod: BudgetPeriod | null = null;
 
@@ -27,28 +33,39 @@ export async function ensureActiveBudgetPeriod(database: SQLiteDatabase, now = n
     );
     if (!settings) return;
 
-    const current = await transaction.getFirstAsync<PeriodRow>(
-      'SELECT * FROM budget_periods WHERE starts_on <= ? AND ends_on > ? ORDER BY starts_on DESC LIMIT 1',
-      date,
-      date,
-    );
-    if (current) {
-      resolvedPeriod = toPeriod(current);
+    assertPositiveCents(settings.default_limit_cents, 'O limite padrão salvo');
+    assertRenewalDay(settings.renewal_day);
+    if (settings.pending_renewal_day !== null) assertRenewalDay(settings.pending_renewal_day);
+
+    const latestRow = await transaction.getFirstAsync<PeriodRow>('SELECT * FROM budget_periods ORDER BY ends_on DESC LIMIT 1');
+    const latest = latestRow ? toPeriod(latestRow) : null;
+    if (latest && date < latest.endsOn) {
+      // Budget history is monotonic. A clock rollback must not reactivate an
+      // older period or create a second timeline behind the newest period.
+      resolvedPeriod = latest;
       return;
     }
 
-    const latest = await transaction.getFirstAsync<PeriodRow>('SELECT * FROM budget_periods ORDER BY ends_on DESC LIMIT 1');
     const effectiveRenewalDay = settings.pending_renewal_day ?? settings.renewal_day;
     const createdAt = now.toISOString();
     let range = latest
-      ? getNextBudgetPeriod(latest.ends_on, effectiveRenewalDay)
+      ? getNextBudgetPeriod(latest.endsOn, effectiveRenewalDay)
       : getCurrentBudgetPeriod(now, effectiveRenewalDay);
-    let activePeriod: BudgetPeriod | null = null;
+    const missingRanges = [];
 
     do {
+      if (missingRanges.length >= MAX_PERIODS_PER_CATCH_UP) {
+        throw new Error('A data do aparelho está muito distante do último período salvo. Corrija-a e tente novamente.');
+      }
+      missingRanges.push(range);
+      range = getNextBudgetPeriod(range.endsOn, effectiveRenewalDay);
+    } while (missingRanges[missingRanges.length - 1].endsOn <= date);
+
+    let activePeriod: BudgetPeriod | null = null;
+    for (const missingRange of missingRanges) {
       activePeriod = {
         id: createId(),
-        ...range,
+        ...missingRange,
         limitCents: settings.default_limit_cents,
         createdAt,
       };
@@ -60,8 +77,7 @@ export async function ensureActiveBudgetPeriod(database: SQLiteDatabase, now = n
         activePeriod.limitCents,
         activePeriod.createdAt,
       );
-      range = getNextBudgetPeriod(activePeriod.endsOn, effectiveRenewalDay);
-    } while (activePeriod.endsOn <= date);
+    }
 
     if (settings.pending_renewal_day !== null) {
       await transaction.runAsync(
@@ -78,6 +94,10 @@ export async function ensureActiveBudgetPeriod(database: SQLiteDatabase, now = n
 }
 
 function toPeriod(row: PeriodRow): BudgetPeriod {
+  assertIsoDate(row.starts_on, 'A data inicial salva do período');
+  assertIsoDate(row.ends_on, 'A data final salva do período');
+  if (row.starts_on >= row.ends_on) throw new Error('O período salvo possui um intervalo de datas inválido.');
+  assertPositiveCents(row.limit_cents, 'O limite salvo do período');
   return {
     id: row.id,
     startsOn: row.starts_on,

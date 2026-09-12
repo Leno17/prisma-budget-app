@@ -11,6 +11,7 @@ export default function IndexScreen() {
   const router = useRouter();
   const databaseStatus = useAppStore((state) => state.databaseStatus);
   const databaseError = useAppStore((state) => state.databaseError);
+  const retryDatabase = useAppStore((state) => state.retryDatabase);
   const [routingError, setRoutingError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,7 +32,17 @@ export default function IndexScreen() {
   }, [databaseStatus, router]);
 
   if (databaseStatus === 'error' || routingError) {
-    return <RouteStateScreen message={routingError ?? databaseError ?? 'Não foi possível abrir os dados locais.'} status="error" title="Não foi possível abrir o Prisma" />;
+    return (
+      <RouteStateScreen
+        message={routingError ?? databaseError ?? 'Não foi possível abrir os dados locais.'}
+        onRetry={() => {
+          setRoutingError(null);
+          retryDatabase();
+        }}
+        status="error"
+        title="Não foi possível abrir o Prisma"
+      />
+    );
   }
 
   return <RouteStateScreen message="Preparando seus dados locais…" status="loading" title="Preparando seu orçamento" />;

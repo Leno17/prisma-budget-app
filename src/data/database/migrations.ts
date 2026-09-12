@@ -72,6 +72,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
   `);
 
   const applied = await db.getAllAsync<{ version: number }>('SELECT version FROM schema_migrations');
+  assertValidMigrationHistory(applied.map(({ version }) => version));
   const appliedVersions = new Set(applied.map(({ version }) => version));
 
   for (const migration of migrations) {
@@ -82,8 +83,23 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
       await db.runAsync('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)', migration.version, new Date().toISOString());
       await db.execAsync('COMMIT');
     } catch (error) {
-      await db.execAsync('ROLLBACK');
+      try {
+        await db.execAsync('ROLLBACK');
+      } catch {
+        // Preserve the migration error that explains why initialization failed.
+      }
       throw error;
+    }
+  }
+}
+
+function assertValidMigrationHistory(appliedVersions: number[]): void {
+  const sortedVersions = [...appliedVersions].sort((left, right) => left - right);
+
+  for (let index = 0; index < sortedVersions.length; index += 1) {
+    const expectedVersion = migrations[index]?.version;
+    if (!Number.isInteger(sortedVersions[index]) || sortedVersions[index] !== expectedVersion) {
+      throw new Error('O histórico de versões do banco de dados local é incompatível com esta versão do Prisma.');
     }
   }
 }

@@ -56,4 +56,16 @@ describe('migrateDatabase', () => {
     expect(database.executedStatements).toContain('ROLLBACK');
     expect(database.executedStatements).not.toContain('COMMIT');
   });
+
+  it.each([
+    { versions: [2] },
+    { versions: [1, 3] },
+    { versions: [1, 2, 3, 4] },
+  ])('rejects an inconsistent migration history: $versions', async ({ versions }) => {
+    const database = new FakeMigrationDatabase(versions);
+
+    await expect(migrateDatabase(asDatabase(database))).rejects.toThrow('histórico de versões');
+
+    expect(database.executedStatements).not.toContain('BEGIN IMMEDIATE');
+  });
 });

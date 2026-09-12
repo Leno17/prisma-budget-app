@@ -18,5 +18,4 @@ export interface TransactionRepository {
   update(id: EntityId, transaction: Pick<NewExpenseTransaction, 'amountCents' | 'description'>): Promise<ExpenseTransaction>;
   delete(id: EntityId): Promise<void>;
   listByPeriod(periodId: EntityId): Promise<ExpenseTransaction[]>;
-  sumByPeriod(periodId: EntityId): Promise<number>;
 }

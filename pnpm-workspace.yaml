@@ -11,8 +11,6 @@ minimumReleaseAgeExclude:
   - expo-font@57.0.3
   - expo-modules-core@57.0.15
   - expo-modules-jsi@57.0.7
-  - expo@57.0.19
-  - '@expo/ui@57.0.15'
-  - expo-image@57.0.4
+  - expo@57.0.20
   - expo-linking@57.0.9
-  - expo-router@57.0.18
+  - expo-router@57.0.19

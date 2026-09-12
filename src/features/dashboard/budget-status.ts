@@ -1,3 +1,5 @@
+import { calculateAvailableCents } from '@/domain/money';
+
 export type BudgetStatusTone = 'healthy' | 'warning' | 'limit-reached' | 'exceeded';
 
 export interface BudgetStatus {
@@ -7,7 +9,7 @@ export interface BudgetStatus {
 }
 
 export function getBudgetStatus(limitCents: number, spentCents: number): BudgetStatus {
-  const availableCents = limitCents - spentCents;
+  const availableCents = calculateAvailableCents(limitCents, spentCents);
   const availablePercentage = Math.max(0, Math.min(100, Math.round((availableCents / limitCents) * 100)));
 
   if (availableCents < 0) return { availablePercentage, tone: 'exceeded', label: 'Limite excedido' };

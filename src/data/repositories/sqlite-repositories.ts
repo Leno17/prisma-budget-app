@@ -1,7 +1,9 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { AppSettings, BudgetPeriod, EntityId, ExpenseTransaction, NewExpenseTransaction } from '@/domain/entities';
+import { assertIsoDate, assertRenewalDay } from '@/domain/budget-period';
 import { normalizeExpenseDescription } from '@/domain/expense-description';
+import { assertPositiveCents } from '@/domain/money';
 import type { BudgetPeriodRepository, SettingsRepository, TransactionRepository } from '@/domain/repositories';
 
 interface SettingsRow {
@@ -32,33 +34,49 @@ interface TransactionRow {
   updated_at: string;
 }
 
-const toSettings = (row: SettingsRow): AppSettings => ({
-  id: row.id,
-  defaultLimitCents: row.default_limit_cents,
-  renewalDay: row.renewal_day,
-  pendingRenewalDay: row.pending_renewal_day,
-  currencyCode: row.currency_code,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+const toSettings = (row: SettingsRow): AppSettings => {
+  assertPositiveCents(row.default_limit_cents, 'O limite padrão salvo');
+  assertRenewalDay(row.renewal_day);
+  if (row.pending_renewal_day !== null) assertRenewalDay(row.pending_renewal_day);
+  if (row.currency_code !== 'BRL') throw new Error('A moeda salva não é compatível com o Prisma.');
 
-const toPeriod = (row: PeriodRow): BudgetPeriod => ({
-  id: row.id,
-  startsOn: row.starts_on,
-  endsOn: row.ends_on,
-  limitCents: row.limit_cents,
-  createdAt: row.created_at,
-});
+  return {
+    id: row.id,
+    defaultLimitCents: row.default_limit_cents,
+    renewalDay: row.renewal_day,
+    pendingRenewalDay: row.pending_renewal_day,
+    currencyCode: row.currency_code,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+};
 
-const toTransaction = (row: TransactionRow): ExpenseTransaction => ({
-  id: row.id,
-  budgetPeriodId: row.budget_period_id,
-  amountCents: row.amount_cents,
-  description: row.description,
-  occurredAt: row.occurred_at,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+const toPeriod = (row: PeriodRow): BudgetPeriod => {
+  assertPositiveCents(row.limit_cents, 'O limite salvo do período');
+  assertIsoDate(row.starts_on, 'A data inicial salva do período');
+  assertIsoDate(row.ends_on, 'A data final salva do período');
+  if (row.starts_on >= row.ends_on) throw new Error('O período salvo possui um intervalo de datas inválido.');
+  return {
+    id: row.id,
+    startsOn: row.starts_on,
+    endsOn: row.ends_on,
+    limitCents: row.limit_cents,
+    createdAt: row.created_at,
+  };
+};
+
+const toTransaction = (row: TransactionRow): ExpenseTransaction => {
+  assertPositiveCents(row.amount_cents, 'O valor salvo da despesa');
+  return {
+    id: row.id,
+    budgetPeriodId: row.budget_period_id,
+    amountCents: row.amount_cents,
+    description: normalizeExpenseDescription(row.description),
+    occurredAt: row.occurred_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+};
 
 export class SqliteSettingsRepository implements SettingsRepository {
   constructor(private readonly database: SQLiteDatabase) {}
@@ -88,6 +106,7 @@ export class SqliteBudgetPeriodRepository implements BudgetPeriodRepository {
   }
 
   async create(period: Omit<BudgetPeriod, 'id' | 'createdAt'>): Promise<BudgetPeriod> {
+    assertPositiveCents(period.limitCents, 'O limite do período');
     const id = createId();
     const createdAt = new Date().toISOString();
     await this.database.runAsync(
@@ -102,6 +121,7 @@ export class SqliteBudgetPeriodRepository implements BudgetPeriodRepository {
   }
 
   async updateActiveLimit(id: EntityId, limitCents: number): Promise<BudgetPeriod> {
+    assertPositiveCents(limitCents, 'O limite do período');
     await this.database.runAsync('UPDATE budget_periods SET limit_cents = ? WHERE id = ?', limitCents, id);
     const updated = await this.getById(id);
     if (!updated) throw new Error('Período orçamentário não encontrado.');
@@ -122,6 +142,7 @@ export class SqliteTransactionRepository implements TransactionRepository {
   }
 
   async create(periodId: EntityId, transaction: NewExpenseTransaction): Promise<ExpenseTransaction> {
+    assertPositiveCents(transaction.amountCents, 'O valor da despesa');
     const id = createId();
     const now = new Date().toISOString();
     const description = normalizeExpenseDescription(transaction.description);
@@ -134,6 +155,7 @@ export class SqliteTransactionRepository implements TransactionRepository {
   }
 
   async update(id: EntityId, transaction: Pick<NewExpenseTransaction, 'amountCents' | 'description'>): Promise<ExpenseTransaction> {
+    assertPositiveCents(transaction.amountCents, 'O valor da despesa');
     const now = new Date().toISOString();
     const description = normalizeExpenseDescription(transaction.description);
     await this.database.runAsync('UPDATE transactions SET amount_cents = ?, description = ?, updated_at = ? WHERE id = ?', transaction.amountCents, description, now, id);
@@ -150,10 +172,6 @@ export class SqliteTransactionRepository implements TransactionRepository {
     return (await this.database.getAllAsync<TransactionRow>('SELECT * FROM transactions WHERE budget_period_id = ? ORDER BY occurred_at DESC, created_at DESC', periodId)).map(toTransaction);
   }
 
-  async sumByPeriod(periodId: EntityId): Promise<number> {
-    const row = await this.database.getFirstAsync<{ total: number | null }>('SELECT SUM(amount_cents) AS total FROM transactions WHERE budget_period_id = ?', periodId);
-    return row?.total ?? 0;
-  }
 }
 
 function createId(): string {

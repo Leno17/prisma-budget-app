@@ -4,42 +4,45 @@
     "slug": "prisma",
     "version": "0.1.0",
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/prisma-launcher-icon.png",
     "scheme": "prisma",
     "userInterfaceStyle": "light",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
     "android": {
+      "package": "com.gabrielweissheimer.prisma",
+      "versionCode": 1,
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#096765",
+        "foregroundImage": "./assets/images/prisma-launcher-icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/prisma-launcher-icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7FAF9",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#F7F9F7",
+          "image": "./assets/images/prisma-splash.png",
+          "imageWidth": 88
         }
       ],
-      "expo-sqlite",
-      "expo-localization"
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fd88f80d-e3f6-4d1b-9786-f0f7e8a2a651"
+      }
+    },
+    "owner": "gabriel-weissheimer"
   }
 }
