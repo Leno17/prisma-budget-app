@@ -32,7 +32,22 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+!*.env.example
+
+# local release and temporary artifacts
+*.apk
+*.aab
+*.keystore
+/tmp/
+
+# local Codex project memory
+/AGENTS.md
+/.codex/project-memory/
 
 # typescript
 *.tsbuildinfo

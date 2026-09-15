@@ -1,10 +1,49 @@
 # Prisma
 
-Prisma is an Android-first personal-budget application designed around a single idea: make each expense visible through a deliberate manual entry, then clearly show how much remains available in the current budget period.
+> An offline-first Android budget app that turns expense tracking into a deliberate, accessible daily habit.
 
-The project is offline-first. It has no login, banking integration, or cloud dependency in its core flow.
+Prisma is an Android-first personal-budget application built around a simple
+idea: make every expense visible through manual entry, then clearly show how
+much remains in the current budget period. It works without an account,
+banking connection, analytics, or cloud dependency.
+
+<p align="center">
+  <img src="./assets/images/screenshots/dashboard.png" width="240" alt="Prisma dashboard showing a R$ 3.000,00 period budget with R$ 1.500,00 remaining." />
+  <img src="./assets/images/screenshots/history.png" width="240" alt="Prisma history screen grouping expenses by budget period." />
+  <img src="./assets/images/screenshots/settings.png" width="240" alt="Prisma settings screen for the current period limit and renewal day." />
+</p>
+
+<p align="center"><em>Standalone Android preview APK. All amounts and entries shown are fictional sample data.</em></p>
+
+## Feature highlights
+
+- **Deliberate expense entry:** a mandatory description encourages a brief pause before recording a purchase.
+- **Period-aware budgeting:** current limits, renewal boundaries, shorter months, and historical periods follow explicit business rules.
+- **Clear local history:** expenses stay grouped by the budget period in which they happened, not by calendar month.
+- **Private by design:** data lives locally in SQLite; there is no login, tracking, bank integration, or cloud sync.
+- **Accessible Android UI:** large-text-friendly layouts, 48dp-or-larger controls, TalkBack labels, visible feedback, and non-color-only status cues.
 
 ## Architecture
+
+```mermaid
+flowchart TB
+  UI[Expo Router routes and feature screens]
+  APP[Application services]
+  DOMAIN["Domain rules<br/>money, validation, periods"]
+  REPO[Repository implementations]
+  DB[("Expo SQLite<br/>app settings, budget periods, transactions")]
+  STATE["Zustand<br/>transient UI state"]
+
+  UI --> APP
+  UI --> STATE
+  APP --> DOMAIN
+  APP --> REPO
+  REPO --> DB
+```
+
+The architecture keeps business rules independent from React Native and SQLite:
+screens coordinate application services, the domain owns financial and period
+logic, and SQLite is the durable source of truth.
 
 Prisma is built with:
 
@@ -16,7 +55,7 @@ Prisma is built with:
 - Explicit domain and repository contracts for the feature implementation phases.
 - Zustand for transient application state only; SQLite remains the durable source of truth.
 
-## Current functionality
+## Product capabilities
 
 - Initial budget setup with a period limit and a renewal day.
 - Budget periods that handle short months and renewal-day changes correctly.
@@ -29,17 +68,25 @@ Prisma is built with:
 
 ## Local development
 
-Install dependencies with pnpm:
+Prerequisites:
+
+- Node.js 22 and pnpm 11.19.
+- Android Studio with an Android emulator, or an Android device with Expo Go.
+
+After cloning the repository, install the locked dependencies:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
-Start the Android development flow:
+Start an Android Studio emulator, then launch the Android development flow:
 
 ```bash
 pnpm android
 ```
+
+For a physical device, run `pnpm start` and open the project from Expo Go on
+the same local network.
 
 Other useful commands:
 
@@ -58,14 +105,22 @@ Prisma uses EAS Build with two Android release-mode profiles:
 - `preview` creates a signed APK for direct installation on an emulator or Android device. It is the release candidate used for standalone and cold-offline validation.
 - `production` creates an AAB for a possible future Google Play release. Creating this artifact does not submit it to the store.
 
-EAS CLI is intentionally not a project dependency. Run its current version on demand:
+EAS CLI is intentionally not a project dependency. The checked-in Expo
+configuration is already linked to Prisma's original EAS project. Maintainers
+can authenticate on demand:
 
 ```bash
 npx eas-cli@latest login
-npx eas-cli@latest init
 ```
 
-The first command authenticates an Expo account. The second creates or links the EAS project and records its generated project ID in the Expo app configuration; review and commit that change before building.
+The `owner` and `extra.eas.projectId` values in `app.json` are public project
+identifiers, not credentials. They do not grant access to the Expo account or
+its signing credentials.
+
+Portfolio evaluators do not need an Expo account or EAS Build to run Prisma
+locally. Anyone creating builds from a fork must link that fork to an EAS
+project they control with `npx eas-cli@latest init` and keep the resulting
+owner and project-ID changes in their fork.
 
 Inspect the resolved profile before requesting a remote build:
 
@@ -116,7 +171,7 @@ Before an Android release candidate, verify these interactions on an emulator or
 
 The included migration tests validate that pending SQLite schema migrations apply once and roll back on failure. Native SQLite behavior must still be checked on Android because Jest does not run Expo's native SQLite module.
 
-The latest standalone Android validation is recorded in
+The Phase 5 standalone Android validation is recorded in
 [docs/release-validation.md](docs/release-validation.md). It documents the
 scope of the tested preview APK; it does not represent a Google Play release.
 
